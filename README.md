@@ -17,8 +17,9 @@
     - [📦 Этап 7: Настройка Nexus Repository](#-этап-7-настройка-nexus-repository)
     - [🔄 Этап 8: Настройка сборки в TeamCity](#-этап-8-настройка-сборки-в-teamcity)
     - [🌿 Этап 9: Работа с фича-ветками](#-этап-9-работа-с-фича-ветками)
-      - [⚠️ Примечание:](#️-примечание)
-      - [Скриншоты](#скриншоты)
+    - [📦 Артефакты](#-артефакты)
+    - [⚠️ Примечание:](#️-примечание)
+    - [Скриншоты](#скриншоты)
 
 ### 🎯 Описание
 Реализовать CI/CD пайплайн на базе TeamCity с использованием:
@@ -536,14 +537,19 @@ mvn clean test
 # [INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
 # [INFO] BUILD SUCCESS
 ```
-#### ⚠️ Примечание:
+
+### 📦 Артефакты
+- Nexus: http://Y.Y.Y.Y:8081/#browse/browse:maven-releases:org/netology/plaindoll
+- [Artifacts](artifacts)
+
+### ⚠️ Примечание:
 ```
 Конфигурация TeamCity выполнена через веб-интерфейс из-за блокировки
 репозитория JetBrains (HTTP 451) из региона Yandex Cloud.
 Файлы .teamcity/ предоставлены для справки.
 ```
 
-#### Скриншоты
+### Скриншоты
 ![alt text](images/1.png)
 ![alt text](images/2.png)
 ![alt text](images/3.png)
