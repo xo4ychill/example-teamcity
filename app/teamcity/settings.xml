@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">
+
+  <!-- 🔑 ИСКЛЮЧЕНИЕ: не использовать Nexus для JetBrains DSL -->
+  <mirrors>
+    <mirror>
+      <id>nexus-mirror</id>
+      <mirrorOf>*,!jetbrains-public</mirrorOf>  <!-- Исключаем jetbrains-public -->
+      <url>http://%env.NEXUS_URL%:8081/repository/maven-public/</url>
+    </mirror>
+  </mirrors>
+
   <servers>
     <server>
       <id>nexus</id>
