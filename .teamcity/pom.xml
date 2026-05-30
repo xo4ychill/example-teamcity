@@ -28,7 +28,7 @@
         <!-- Nexus для остальных зависимостей -->
         <repository>
             <id>nexus-public</id>
-            <url>http://10.10.10.30:8081/repository/maven-public/</url>
+            <url>http://%env.NEXUS_URL%:8081/repository/maven-public/</url>
             <releases><enabled>true</enabled></releases>
             <snapshots><enabled>true</enabled></snapshots>
         </repository>
