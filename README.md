@@ -388,7 +388,7 @@ Repository → Repositories
 2. Выберите "From URL"
 3. Заполните форму:
 
-   🔗 VCS root URL: https://github.com/xo4ychill/example-teamcity
+   🔗 VCS root URL: https://github.com/your-username/example-teamcity
    🔐 Authentication method: Public (для публичного) или Username/Password
    📁 Default branch: refs/heads/master
 
