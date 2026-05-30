@@ -184,7 +184,7 @@ export TF_VAR_folder_id="b1gxxxxxxxxxxxxxxxx"
 export TF_VAR_ssh_public_key="$(cat ~/.ssh/id_ed25519.pub)"
 export TF_VAR_allowed_ssh_cidr="YOUR.PUBLIC.IP/32"  # Узнайте на whatismyip.com
 ```
-Загрузите переменные:
+- Загрузите переменные:
 ```bash
 source ~/.teamcity-env
 ```
