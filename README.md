@@ -2,24 +2,25 @@
 
 ## 📋 Оглавление
 
-1. 🎯 Описание задания
+- [🎓 Домашнее задание: Настройка CI/CD в TeamCity](#-домашнее-задание-настройка-cicd-в-teamcity)
+  - [📋 Оглавление](#-оглавление)
+    - [🎯 Описание](#-описание)
+    - [📁 Структура проекта](#-структура-проекта)
+    - [⚙️ Требования](#️-требования)
+    - [🚀 Быстрый старт](#-быстрый-старт)
+    - [📦 Этап 1: Подготовка окружения](#-этап-1-подготовка-окружения)
+    - [🌍 Этап 2: Развёртывание инфраструктуры (Terraform)](#-этап-2-развёртывание-инфраструктуры-terraform)
+    - [🐳 Этап 3: Проверка Docker-контейнеров](#-этап-3-проверка-docker-контейнеров)
+    - [🔧 Этап 4: Установка Nexus через Ansible](#-этап-4-установка-nexus-через-ansible)
+    - [⚙️ Этап 5: Настройка TeamCity](#️-этап-5-настройка-teamcity)
+    - [🔗 Этап 6: Подключение Build Agent](#-этап-6-подключение-build-agent)
+    - [📦 Этап 7: Настройка Nexus Repository](#-этап-7-настройка-nexus-repository)
+    - [🔄 Этап 8: Настройка сборки в TeamCity](#-этап-8-настройка-сборки-в-teamcity)
+    - [🌿 Этап 9: Работа с фича-ветками](#-этап-9-работа-с-фича-ветками)
+      - [⚠️ Примечание:](#️-примечание)
+      - [Скриншоты](#скриншоты)
 
-3. 📁 Структура проекта
-4. ⚙️ Требования и зависимости
-5. 🚀 Быстрый старт
-6. 📦 Этап 1: Подготовка окружения
-7. 🌍 Этап 2: Развёртывание инфраструктуры (Terraform)
-8. 🐳 Этап 3: Проверка Docker-контейнеров
-9. 🔧 Этап 4: Установка Nexus через Ansible
-10. ⚙️ Этап 5: Настройка TeamCity
-11. 🔄 Этап 6: Настройка сборки и деплоя
-12. 🌿 Этап 7: Работа с фича-ветками
-13. ✅ Этап 8: Финальная проверка
-14. 🔍 Диагностика и частые проблемы
-15. 🗑️ Удаление инфраструктуры
-16. 📎 Приложение: Полный код проекта
-
-### 🎯 Описание задания
+### 🎯 Описание
 Реализовать CI/CD пайплайн на базе TeamCity с использованием:
 
 |     Компонент    |                             Требования                             |                 Реализация                |
@@ -85,7 +86,7 @@ example-teamcity/
         └── BuildType.kt
 ```
 
-### ⚙️ Требования и зависимости
+### ⚙️ Требования
 
 Программное обеспечение:
 
@@ -188,3 +189,363 @@ source ~/.teamcity-env
 ```
 
 ### 🌍 Этап 2: Развёртывание инфраструктуры (Terraform)
+
+```baash
+cd terraform/src
+
+# Инициализация провайдеров и модулей
+terraform init
+
+# Ожидаемый вывод:
+# ✅ Terraform has been successfully initialized!
+
+# Форматирование кода
+terraform fmt -recursive
+
+# Валидация конфигурации
+terraform validate
+# ✅ Ожидаемый вывод: Success! The configuration is valid.
+
+# Создание плана с выводом в файл
+terraform plan -out=tfplan
+
+# 🔍 Внимательно проверьте план:
+# • Создаются 3 ВМ с правильными характеристиками (4/2/2 CPU, 4GB RAM)
+# • Создаётся сеть 10.10.10.0/24
+# • Открываются порты 8111 (TeamCity) и 8081 (Nexus)
+# • SSH доступен только с вашего IP (если задан allowed_ssh_cidr)
+
+# Применение плана
+terraform apply tfplan
+
+# Подтвердите действие вводом: yes
+
+# ⏱ Время выполнения: 5-10 минут
+
+# Сохраните URL и IP для последующего использования
+terraform output -raw teamcity_url > ~/tc-server-url.txt
+terraform output -raw nexus_external_ip > ~/nexus-ip.txt
+terraform output -raw nexus_internal_ip > ~/nexus-internal-ip.txt
+terraform output -raw next_steps
+
+# Пример вывода:
+# teamcity_url = "http://84.201.XXX.XXX:8111"
+# nexus_vm_external_ip = "84.201.YYY.YYY"
+# nexus_vm_internal_ip = "10.10.10.15"
+```
+
+### 🐳 Этап 3: Проверка Docker-контейнеров
+
+- Проверка статуса контейнеров на Server и Agent
+```bash
+# Проверка running-контейнеров
+docker ps
+
+# Ожидаемый вывод на server:
+# CONTAINER ID   IMAGE                          STATUS    NAMES
+# abc123         jetbrains/teamcity-server      Up        teamcity-server
+
+# Ожидаемый вывод на agent:
+# CONTAINER ID   IMAGE                        STATUS    NAMES  
+# def456         jetbrains/teamcity-agent     Up        teamcity-agent
+
+# На ВМ агента проверьте переменную SERVER_URL
+docker exec teamcity-agent env | grep SERVER_URL
+
+# Ожидаемый вывод:
+# SERVER_URL=http://10.10.10.X:8111
+# (внутренний IP сервера, не публичный!)
+```
+
+### 🔧 Этап 4: Установка Nexus через Ansible
+
+- Подготовка inventory
+```bash
+# Обновите inventory с реальным внешним IP Nexus VM
+cd ansible/
+sed -i "s/<nexushost>/$(cat ~/nexus-ip.txt)/" inventory/cicd/hosts.yml
+
+# Проверьте содержимое
+cat inventory/cicd/hosts.yml
+# nexus-01:
+#   ansible_host: 84.201.YYY.YYY  # ← должен быть реальный IP
+```
+
+- Запуск playbook
+```bash
+# Запуск установки Nexus
+ansible-playbook -i inventory/cicd/hosts.yml site.yml -u yc-user --private-key ~/.ssh/id_ed25519 -v
+
+# Ожидаемый вывод в конце:
+# PLAY RECAP *********************************************************************
+# nexus-01                   : ok=XX  changed=XX  unreachable=0  failed=0  skipped=X  rescued=0  ignored=0
+```
+
+- Проверка статуса Nexus
+```bash
+# Проверка статуса systemd-сервиса
+ssh ubuntu@$(cat ~/nexus-ip.txt) "sudo systemctl status nexus"
+
+# Ожидаемый вывод:
+# ● nexus.service - nexus service
+#      Loaded: loaded (/lib/systemd/system/nexus.service; enabled)
+#      Active: active (running) since ...
+
+# Проверка доступности веб-интерфейса
+curl -sf http://$(cat ~/nexus-ip.txt):8081/service/rest/v1/status && echo "✅ Nexus OK" || echo "❌ Nexus DOWN"
+```
+
+### ⚙️ Этап 5: Настройка TeamCity
+
+- Доступ к веб-интерфейсу (данные из ```terraform output```)
+```bash
+http://84.201.XXX.XXX:8111
+```
+- Создание пользователя-администратора
+
+### 🔗 Этап 6: Подключение Build Agent
+
+- Проверка статуса и авторизация агента 
+    - В TeamCity перейдите: Administration → Agents
+    - Найдите нового агента со статусом "Unauthorized"
+    - Нажмите на имя агента
+    - Нажмите кнопку "Authorize" 
+    - Подтвердите действие
+✅ Статус изменится на "Connected"
+
+- Проверка параметров агента
+```
+Агент → Parameters tab
+
+Проверьте наличие:
+• teamcity.agent.name = teamcity-agent
+• env.SERVER_URL = http://10.10.10.X:8111
+• teamcity.agent.jvm.os.name = Linux
+```
+
+### 📦 Этап 7: Настройка Nexus Repository
+
+- Доступ к веб-интерфейсу Nexus
+```
+Откройте в браузере: http://$(cat ~/nexus-ip.txt):8081
+Логин: admin
+Пароль: admin123 (по умолчанию)
+```
+- Смена пароля администратора (ОБЯЗАТЕЛЬНО)
+```
+1. Нажмите на иконку пользователя (верхний правый угол)
+2. Выберите "Change password"
+3. Введите:
+   • Current password: admin123
+   • New password: ******** (новый надёжный пароль)
+   • Confirm password: (повтор)
+4. Нажмите "Change password"
+```
+- Создание пользователя для CI/CD
+```
+Security → Users → Create user
+
+📝 Параметры:
+• User ID: ci-deployer
+• First name: CI
+• Last name: Deployer  
+• Email: ci@localhost
+• Password: ******** (надёжный, сохраните!)
+• Status: Active
+
+✅ Нажмите "Create user"
+```
+
+- Назначение прав пользователю
+```
+1. Найдите пользователя ci-deployer в списке
+2. Нажмите на иконку ключа (Roles)
+3. Добавьте роли:
+
+   🔹 nx-repository-view-maven2-maven-public-read
+   🔹 nx-repository-view-maven2-maven-releases-edit  
+   🔹 nx-repository-view-maven2-maven-snapshots-edit
+
+✅ Нажмите "Save"
+```
+
+- Проверка Maven-репозиториев
+```
+Repository → Repositories
+
+✅ Должны присутствовать:
+• maven-public (group)
+• maven-releases (hosted) — для release-версий
+• maven-snapshots (hosted) — для SNAPSHOT-версий
+• maven-central (proxy)
+```
+
+### 🔄 Этап 8: Настройка сборки в TeamCity
+
+- Импорт проекта из репозитория
+```
+1. На главной странице нажмите "Create Project"
+2. Выберите "From URL"
+3. Заполните форму:
+
+   🔗 VCS root URL: https://github.com/xo4ychill/example-teamcity
+   🔐 Authentication method: Public (для публичного) или Username/Password
+   📁 Default branch: refs/heads/master
+
+4. Нажмите "Proceed"
+```
+
+- Autodetect конфигурации
+```
+1. На экране "Build Configuration" TeamCity автоматически определит:
+   • Build runner: Maven
+   • pom.xml location: ./pom.xml
+   • Goals: clean package
+
+2. Проверьте автоопределённые параметры
+3. Нажмите "Save"
+```
+
+- Настройка параметров проекта
+```
+Project Settings → Parameters → Add parameter
+
+📝 Параметр 1:
+• Name: nexus.url
+• Value: 10.10.10.15:8081  # ← внутренний IP из terraform output
+• Type: Text
+
+📝 Параметр 2:  
+• Name: nexus.user
+• Value: ci-deployer
+• Type: Text
+
+📝 Параметр 3:
+• Name: nexus.password
+• Value: ******** (пароль пользователя ci-deployer)
+• Type: 🔒 Password (обязательно!)
+
+✅ Нажмите "Save" после каждого параметра
+```
+
+- Настройка шагов сборки с условиями
+```
+Перейдите: Build Configuration → Build Steps
+
+ Шаг 1: Тесты (для всех веток, кроме master):
+ 📝 Параметры шага:
+• Run: Maven
+• Goals: clean test
+• POM file path: pom.xml
+• User settings file: teamcity/settings.xml
+• Maven version: default
+
+🔹 Условия выполнения (Execution conditions):
+• Add condition → Equals
+• Parameter: teamcity.build.branch
+• Value: master
+• ☑️ Invert condition (выполнять если НЕ равно master)
+
+✅ Нажмите "Save"
+
+Шаг 2: Деплой (только для master):
+
+📝 Параметры шага:
+• Run: Maven  
+• Goals: clean deploy
+• POM file path: pom.xml
+• User settings file: teamcity/settings.xml
+• Maven version: default
+
+🔹 Условия выполнения:
+• Add condition → Equals
+• Parameter: teamcity.build.branch
+• Value: master
+• ☐ Invert condition (выполнять только если равно master)
+
+✅ Нажмите "Save"
+```
+
+- Настройка артефактов
+```
+Build Configuration → General Settings → Artifact paths
+
+📝 Правило:
++:target/plaindoll-*.jar => artifacts/
+
+✅ Нажмите "Save"
+```
+
+- Настройка триггера
+```
+Build Configuration → Triggers → Add trigger → VCS Trigger
+
+📝 Параметры:
+• Branch filter: +:*
+
+✅ Нажмите "Save"
+```
+
+### 🌿 Этап 9: Работа с фича-ветками
+
+- Создание ветки feature/add_reply
+```bash
+# Локально в клоне репозитория
+git checkout -b feature/add_reply
+
+# Проверка текущей ветки
+git branch
+# * feature/add_reply
+#   master
+```
+
+- Добавление метода sayHunterReply()
+Откройте app/src/main/java/plaindoll/Welcomer.java и добавьте:
+```java
+/**
+ * ✅ НОВЫЙ МЕТОД: добавлен в ветке feature/add_reply
+ * Требование: вернуть строку, содержащую слово "hunter"
+ */
+public String sayHunterReply() {
+    return "Greetings, brave hunter! Your quest awaits in the northern woods.";
+}
+```
+
+- Добавление теста
+Откройте app/src/test/java/plaindoll/WelcomerTest.java и добавьте:
+```java
+/**
+ * ✅ НОВЫЙ ТЕСТ: проверка метода sayHunterReply()
+ * Требование: реплика должна содержать слово "hunter"
+ */
+@Test
+public void welcomerSaysHunterReply() {
+    String reply = welcomer.sayHunterReply();
+    assertNotNull("Reply must not be null", reply);
+    // Регистронезависимая проверка по заданию
+    assertThat("Reply should contain 'hunter' (case-insensitive)", 
+              reply.toLowerCase(), containsString("hunter"));
+}
+```
+- Локальная проверка
+```bash
+# Запуск тестов локально
+mvn clean test
+
+# ✅ Ожидаемый вывод:
+# [INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+# [INFO] BUILD SUCCESS
+```
+#### ⚠️ Примечание:
+```
+Конфигурация TeamCity выполнена через веб-интерфейс из-за блокировки
+репозитория JetBrains (HTTP 451) из региона Yandex Cloud.
+Файлы .teamcity/ предоставлены для справки.
+```
+
+#### Скриншоты
+![alt text](images/1.png)
+![alt text](images/2.png)
+![alt text](images/3.png)
+![alt text](images/4.png)
+![alt text](images/5.png)
