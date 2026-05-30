@@ -9,7 +9,8 @@
     <groupId>org.netology</groupId>
     <artifactId>plaindoll</artifactId>
     <packaging>jar</packaging>
-    <version>0.0.2</version>
+    <!-- 🔑 ИЗМЕНЕНО: версия с суффиксом -SNAPSHOT -->
+    <version>0.0.2-SNAPSHOT</version>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -28,7 +29,6 @@
 
     <build>
         <plugins>
-            <!-- Maven Shade Plugin для создания executable JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -52,16 +52,22 @@
         </plugins>
     </build>
 
-    <!-- ✅ NEXUS INTEGRATION: куда деплоить артефакты -->
+    <!-- ✅ NEXUS INTEGRATION: разделение на releases и snapshots -->
     <distributionManagement>
+        <!-- RELEASE-репозиторий: для версий без -SNAPSHOT (immutable) -->
         <repository>
             <id>nexus</id>
-            <!-- 👉 Замените 51.250.13.64 на внутренний IP вашей ВМ Nexus -->
-            <url>http://${env.NEXUS_URL}:8081/repository/maven-releases</url>
+            <name>Nexus Releases</name>
+            <url>http://${env.NEXUS_URL}:8081/repository/maven-releases/</url>
         </repository>
+        <!-- 🔑 SNAPSHOT-репозиторий: для версий с -SNAPSHOT (allow redeploy) -->
+        <snapshotRepository>
+            <id>nexus</id>
+            <name>Nexus Snapshots</name>
+            <url>http://${env.NEXUS_URL}:8081/repository/maven-snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
 
-    <!-- Репозиторий для загрузки зависимостей -->
     <repositories>
         <repository>
             <id>nexus-public</id>
