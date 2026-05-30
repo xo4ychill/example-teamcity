@@ -3,22 +3,46 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.example.teamcity</groupId>
     <artifactId>teamcity-configs</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <!-- 🔑 Должна ТОЧНО совпадать с версией сервера -->
+        <!-- 🔑 Точная версия из футера TeamCity -->
         <teamcity.dsl.version>2026.1.1</teamcity.dsl.version>
     </properties>
 
     <repositories>
+        <!-- 🔑 ПРЯМОЙ ДОСТУП К JETBRAINS (в обход Nexus) -->
         <repository>
             <id>jetbrains-public</id>
             <url>https://download.jetbrains.com/teamcity-repository</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+            <!-- Исключаем этот репозиторий из зеркал -->
+            <layout>default</layout>
+        </repository>
+        
+        <!-- Nexus для остальных зависимостей -->
+        <repository>
+            <id>nexus-public</id>
+            <url>http://%env.NEXUS_URL%:8081/repository/maven-public/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>true</enabled></snapshots>
         </repository>
     </repositories>
+
+    <!-- 🔑 Явно указываем, какие репозитории НЕ использовать как зеркала -->
+    <pluginRepositories>
+        <pluginRepository>
+            <id>jetbrains-public</id>
+            <url>https://download.jetbrains.com/teamcity-repository</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencies>
         <dependency>
